@@ -1,9 +1,14 @@
 module.exports = {
-  entry: "./entry.js",
+  entry: "./js/main.js",
   output: {
     path: __dirname,
-    filename: "./bundle.js"
+    filename: "app.js",
   },
+  devServer: {
+    contentBase: "./public",
+  },
+  devtool: "#source-map",
+
   module: {
     loaders: [
       {
@@ -22,5 +27,4 @@ module.exports = {
       }
     ]
   },
-  devtool: "#source-map"
 };

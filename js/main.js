@@ -1,4 +1,4 @@
-require("./style.scss");
+require("../styles/style.scss");
 let Game = require("./game.js");
 
 // game logic
