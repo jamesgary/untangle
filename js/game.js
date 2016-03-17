@@ -15,12 +15,14 @@ module.exports = class Game {
   constructor(gameData, canvas) {
     this.web = new Web(gameData);
     this.canvas = canvas;
+    this.$canvas = $(canvas);
     this.ctx = canvas.getContext("2d");
 
     this.lastTickTime = Date.now();
   }
 
   start() {
+    this.canvas.addEventListener('mousemove', this.mousemove.bind(this));
     this.gameLoop();
   }
 
@@ -62,5 +64,39 @@ module.exports = class Game {
       this.ctx.fill();
       this.ctx.stroke();
     }
+
+    // misc
+  }
+
+  mousemove(evt) {
+    let rect = canvas.getBoundingClientRect();
+    let x = evt.clientX - rect.left;
+    let y = evt.clientY - rect.top;
+
+    // if we were overlapping and now no longer overlap, set cursor to default
+    if (this.alreadyOverlapping) {
+      for (let node of this.web.map.values()) {
+        if (this.distance(x, y, node.x, node.y) < NODE_RAD) {
+          // we're still overlapping, keep cursor as-is
+          return
+        }
+      }
+      // no matches, turn off pointer
+      this.$canvas.css("cursor", "");
+      this.alreadyOverlapping = false;
+    } else { // if we weren't overlapping and are now, set cursor to pointer
+      for (let node of this.web.map.values()) {
+        if (this.distance(x, y, node.x, node.y) <= NODE_RAD) {
+          // found overlap, turn on pointer
+          this.$canvas.css("cursor", "pointer");
+          this.alreadyOverlapping = true;
+          return
+        }
+      }
+    }
+  }
+
+  distance(x1, y1, x2, y2) {
+    return Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow(y1 - y2, 2));
   }
 }
