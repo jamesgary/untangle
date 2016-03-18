@@ -6,7 +6,9 @@ let HEIGHT = 400;
 let BG_COLOR = "#fff";
 let NODE_OUTLINE_COLOR = "#7A427A";
 let NODE_BG_COLOR = "#D490D3";
-let OUTLINE_COLOR = "#888";
+let HOVER_NODE_OUTLINE_COLOR = "#BA429A";
+let HOVER_NODE_BG_COLOR = "#F4A0E3";
+let EDGE_COLOR = "#888";
 
 let NODE_RAD = 10;
 let NODE_OUTLINE = 2;
@@ -47,7 +49,7 @@ module.exports = class Game {
     this.ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
     // draw edges
-    this.ctx.strokeStyle = OUTLINE_COLOR;
+    this.ctx.strokeStyle = EDGE_COLOR;
     for (let edge of this.web.edges) {
       this.ctx.beginPath();
       this.ctx.moveTo(edge[0].x, edge[0].y);
@@ -61,6 +63,16 @@ module.exports = class Game {
     for (let node of this.web.map.values()) {
       this.ctx.beginPath();
       this.ctx.arc (node.x, node.y, NODE_RAD, 0, 2 * Math.PI);
+      this.ctx.fill();
+      this.ctx.stroke();
+    }
+
+    // draw hovered node
+    if (this.hoveredNode) {
+      this.ctx.fillStyle = HOVER_NODE_BG_COLOR;
+      this.ctx.strokeStyle = HOVER_NODE_OUTLINE_COLOR;
+      this.ctx.beginPath();
+      this.ctx.arc (this.hoveredNode.x, this.hoveredNode.y, NODE_RAD, 0, 2 * Math.PI);
       this.ctx.fill();
       this.ctx.stroke();
     }
@@ -84,12 +96,15 @@ module.exports = class Game {
       // no matches, turn off pointer
       this.$canvas.css("cursor", "default");
       this.alreadyOverlapping = false;
+      this.hoveredNode = null;
     } else { // if we weren't overlapping and are now, set cursor to pointer
       for (let node of this.web.map.values()) {
         if (this.distance(x, y, node.x, node.y) <= NODE_RAD) {
           // found overlap, turn on pointer
           this.$canvas.css("cursor", "pointer");
           this.alreadyOverlapping = true;
+
+          this.hoveredNode = node; // FIXME start of the queue, so last to be drawn. reverse the iteration somewhere
           return
         }
       }
