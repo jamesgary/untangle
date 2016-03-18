@@ -84,31 +84,30 @@ module.exports = class Game {
     let rect = canvas.getBoundingClientRect();
     let x = evt.clientX - rect.left;
     let y = evt.clientY - rect.top;
+    let newHoveredNode = this.getAnyTouchingNode(x, y);
 
     // if we were overlapping and now no longer overlap, set cursor to default
-    if (this.alreadyOverlapping) {
-      for (let node of this.web.map.values()) {
-        if (this.distance(x, y, node.x, node.y) < NODE_RAD) {
-          // we're still overlapping, keep cursor as-is
-          return
-        }
+    if (this.hoveredNode) {
+      if (!newHoveredNode) {
+        this.$canvas.css("cursor", "default");
+        this.hoveredNode = null;
       }
-      // no matches, turn off pointer
-      this.$canvas.css("cursor", "default");
-      this.alreadyOverlapping = false;
-      this.hoveredNode = null;
     } else { // if we weren't overlapping and are now, set cursor to pointer
-      for (let node of this.web.map.values()) {
-        if (this.distance(x, y, node.x, node.y) <= NODE_RAD) {
-          // found overlap, turn on pointer
-          this.$canvas.css("cursor", "pointer");
-          this.alreadyOverlapping = true;
-
-          this.hoveredNode = node; // FIXME start of the queue, so last to be drawn. reverse the iteration somewhere
-          return
-        }
+      if (newHoveredNode) {
+        // found overlap, turn on pointer
+        this.$canvas.css("cursor", "pointer");
+        this.hoveredNode = newHoveredNode;
       }
     }
+  }
+
+  getAnyTouchingNode(x, y) {
+    for (let node of this.web.map.values()) {
+      if (this.distance(x, y, node.x, node.y) <= NODE_RAD) {
+        return node;
+      }
+    }
+    return null;
   }
 
   distance(x1, y1, x2, y2) {
