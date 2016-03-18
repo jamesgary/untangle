@@ -7,7 +7,9 @@ let BG_COLOR = "#fff";
 let NODE_OUTLINE_COLOR = "#7A427A";
 let NODE_BG_COLOR = "#D490D3";
 let HOVER_NODE_OUTLINE_COLOR = "#BA429A";
-let HOVER_NODE_BG_COLOR = "#F4A0E3";
+let HOVER_NODE_BG_COLOR = "#E4A0E3";
+let DRAG_NODE_OUTLINE_COLOR = "#BF52AA";
+let DRAG_NODE_BG_COLOR = "#FFA0E3";
 let EDGE_COLOR = "#888";
 
 let NODE_RAD = 10;
@@ -25,6 +27,8 @@ module.exports = class Game {
 
   start() {
     this.canvas.addEventListener('mousemove', this.mousemove.bind(this));
+    this.canvas.addEventListener('mousedown', this.mousedown.bind(this));
+    this.canvas.addEventListener('mouseup', this.mouseup.bind(this));
     this.gameLoop();
   }
 
@@ -77,6 +81,16 @@ module.exports = class Game {
       this.ctx.stroke();
     }
 
+    // draw dragged node
+    if (this.draggedNode) {
+      this.ctx.fillStyle = DRAG_NODE_BG_COLOR;
+      this.ctx.strokeStyle = DRAG_NODE_OUTLINE_COLOR;
+      this.ctx.beginPath();
+      this.ctx.arc (this.draggedNode.x, this.draggedNode.y, NODE_RAD, 0, 2 * Math.PI);
+      this.ctx.fill();
+      this.ctx.stroke();
+    }
+
     // misc
   }
 
@@ -86,19 +100,40 @@ module.exports = class Game {
     let y = evt.clientY - rect.top;
     let newHoveredNode = this.getAnyTouchingNode(x, y);
 
-    // if we were overlapping and now no longer overlap, set cursor to default
-    if (this.hoveredNode) {
-      if (!newHoveredNode) {
-        this.$canvas.css("cursor", "default");
-        this.hoveredNode = null;
-      }
-    } else { // if we weren't overlapping and are now, set cursor to pointer
-      if (newHoveredNode) {
-        // found overlap, turn on pointer
-        this.$canvas.css("cursor", "pointer");
-        this.hoveredNode = newHoveredNode;
+    if (this.draggedNode) {
+      // drag it!
+      this.draggedNode.x = x;
+      this.draggedNode.y = y;
+    } else {
+      // if we were overlapping and now no longer overlap, set cursor to default
+      if (this.hoveredNode) {
+        if (!newHoveredNode) {
+          this.$canvas.css("cursor", "default");
+          this.hoveredNode = null;
+        }
+      } else { // if we weren't overlapping and are now, set cursor to pointer
+        if (newHoveredNode) {
+          // found overlap, turn on pointer
+          this.$canvas.css("cursor", "pointer");
+          this.hoveredNode = newHoveredNode;
+        }
       }
     }
+  }
+
+  mousedown(evt) {
+    let rect = canvas.getBoundingClientRect();
+    let x = evt.clientX - rect.left;
+    let y = evt.clientY - rect.top;
+    let clickedNode = this.getAnyTouchingNode(x, y);
+
+    if (clickedNode) {
+      this.draggedNode = clickedNode;
+    }
+  }
+
+  mouseup(evt) {
+    this.draggedNode = null;
   }
 
   getAnyTouchingNode(x, y) {
