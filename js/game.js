@@ -82,7 +82,7 @@ module.exports = class Game {
         }
       }
       // no matches, turn off pointer
-      this.$canvas.css("cursor", "");
+      this.$canvas.css("cursor", "default");
       this.alreadyOverlapping = false;
     } else { // if we weren't overlapping and are now, set cursor to pointer
       for (let node of this.web.map.values()) {
