@@ -102,8 +102,8 @@ module.exports = class Game {
 
     if (this.draggedNode) {
       // drag it!
-      this.draggedNode.x = x;
-      this.draggedNode.y = y;
+      this.draggedNode.x = x + this.draggedNodeXOffset;
+      this.draggedNode.y = y + this.draggedNodeYOffset;
     } else {
       // if we were overlapping and now no longer overlap, set cursor to default
       if (this.hoveredNode) {
@@ -129,6 +129,11 @@ module.exports = class Game {
 
     if (clickedNode) {
       this.draggedNode = clickedNode;
+      this.draggedNodeXOffset = this.draggedNode.x - x;
+      this.draggedNodeYOffset = this.draggedNode.y - y;
+      // drag it!
+      this.draggedNode.x = x + this.draggedNodeXOffset;
+      this.draggedNode.y = y + this.draggedNodeYOffset;
     }
   }
 
