@@ -1,4 +1,5 @@
 let Web = require("./web.js");
+let Graphs = require("./graphs.js");
 
 let WIDTH = 600;
 let HEIGHT = 400;
@@ -16,8 +17,9 @@ let NODE_RAD = 10;
 let NODE_OUTLINE = 2;
 
 module.exports = class Game {
-  constructor(gameData, canvas) {
-    this.web = new Web(gameData);
+  constructor(canvas) {
+    let edges = Graphs.generateTantalo({numLines: 6});
+    this.web = new Web(edges);
     this.canvas = canvas;
     this.$canvas = $(canvas);
     this.ctx = canvas.getContext("2d");
