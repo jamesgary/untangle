@@ -70,8 +70,6 @@ module.exports = {
         let x = newB / newM;
         let y = (line1.slope * x) + line1.yIntercept; // apply original line formula
 
-        id++;
-
         let intersection = {
           id: id,
           x: x,
@@ -82,6 +80,8 @@ module.exports = {
         intersections.push(intersection);
         line1.intersections.push(intersection);
         line2.intersections.push(intersection);
+
+        id++;
       }
     }
     return intersections;

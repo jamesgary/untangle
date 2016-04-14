@@ -1,5 +1,5 @@
-let Web = require("./web.js");
-let Graphs = require("./graphs.js");
+let GameGraph = require("./game_graph.js");
+let GraphGenerators = require("./graph_generators.js");
 
 let WIDTH = 600;
 let HEIGHT = 400;
@@ -18,8 +18,8 @@ let NODE_OUTLINE = 2;
 
 module.exports = class Game {
   constructor(canvas) {
-    let edges = Graphs.generateTantalo({numLines: 6});
-    this.web = new Web(edges);
+    let edges = GraphGenerators.generateTantalo({numLines: 5});
+    this.graph = new GameGraph(edges, canvas.width, canvas.height);
     this.canvas = canvas;
     this.$canvas = $(canvas);
     this.ctx = canvas.getContext("2d");
@@ -56,7 +56,7 @@ module.exports = class Game {
 
     // draw edges
     this.ctx.strokeStyle = EDGE_COLOR;
-    for (let edge of this.web.edges) {
+    for (let edge of this.graph.edges) {
       this.ctx.beginPath();
       this.ctx.moveTo(edge[0].x, edge[0].y);
       this.ctx.lineTo(edge[1].x, edge[1].y);
@@ -66,7 +66,7 @@ module.exports = class Game {
     // draw nodes
     this.ctx.fillStyle = NODE_BG_COLOR;
     this.ctx.strokeStyle = NODE_OUTLINE_COLOR;
-    for (let node of this.web.map.values()) {
+    for (let node of this.graph.nodes) {
       this.ctx.beginPath();
       this.ctx.arc (node.x, node.y, NODE_RAD, 0, 2 * Math.PI);
       this.ctx.fill();
@@ -144,7 +144,7 @@ module.exports = class Game {
   }
 
   getAnyTouchingNode(x, y) {
-    for (let node of this.web.map.values()) {
+    for (let node of this.graph.nodes) {
       if (this.distance(x, y, node.x, node.y) <= NODE_RAD) {
         return node;
       }
