@@ -141,6 +141,11 @@ module.exports = class Game {
 
   mouseup(evt) {
     this.draggedNode = null;
+    let now = Date.now();
+    let intersectingEdges = this.graph.getIntersectingEdges();
+    if (intersectingEdges.length == 0) {
+      console.log("YOU WIN");
+    }
   }
 
   getAnyTouchingNode(x, y) {

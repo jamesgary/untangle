@@ -57,4 +57,40 @@ module.exports = class GameGraph {
       i++;
     }
   }
+
+  // private
+
+  getIntersectingEdges() {
+    let edgeLength = this.edges.length;
+    let intersectingEdges = [];
+    for (let i = 0; i < edgeLength - 1; i++) {
+      let edge1 = this.edges[i];
+      for (let j = i; j < edgeLength; j++) {
+        let edge2 = this.edges[j];
+
+        // don't check edges that share a node
+        if (edge1[0] != edge2[0] &&
+            edge1[1] != edge2[0] &&
+            edge1[0] != edge2[1] &&
+            edge1[1] != edge2[1]) {
+          if (this.isIntersecting(this.edges[i][0], this.edges[i][1], this.edges[j][0], this.edges[j][1])) {
+            intersectingEdges.push([this.edges[i], this.edges[j]]);
+          }
+        }
+      }
+    }
+    return intersectingEdges;
+  }
+
+  // from http://stackoverflow.com/a/16725715
+  ccw(p1, p2, p3) {
+    let a = p1.x; let b = p1.y;
+    let c = p2.x; let d = p2.y;
+    let e = p3.x; let f = p3.y;
+    return (f - b) * (c - a) > (d - b) * (e - a);
+  }
+
+  isIntersecting(p1, p2, p3, p4) {
+    return (this.ccw(p1, p3, p4) != this.ccw(p2, p3, p4)) && (this.ccw(p1, p2, p3) != this.ccw(p1, p2, p4));
+  }
 }
