@@ -9,9 +9,19 @@ let COLOR1 = '#40b4ff'
 let COLOR2 = '#128ef3'
 let COLOR3 = '#0e50ca'
 let COLOR4 = '#214ae5'
-let EDGE_COLOR = '#3670fe'
+let STROKE_COLOR = '#000053';
+
+let HOVER_COLOR1 = '#fdd542'
+let HOVER_COLOR2 = '#fdbd36'
+let HOVER_COLOR3 = '#f39a24'
+let HOVER_COLOR4 = '#dd8c10'
+let HOVER_STROKE_COLOR = '#864d00'
+
+let EDGE_COLOR = '#181879'
+let TRANSPARENT = 'rgba(255,255,255,0)';
 
 let NODE_RAD = 10;
+let GLOW_RAD = NODE_RAD * 1.8;
 
 module.exports = class Game {
   constructor(canvas) {
@@ -32,13 +42,15 @@ module.exports = class Game {
     $('#color2').val(localStorage.getItem('color2') || COLOR2).on('change', function(e) { COLOR2 = e.target.value; localStorage.setItem('color2', COLOR2)});
     $('#color3').val(localStorage.getItem('color3') || COLOR3).on('change', function(e) { COLOR3 = e.target.value; localStorage.setItem('color3', COLOR3)});
     $('#color4').val(localStorage.getItem('color4') || COLOR4).on('change', function(e) { COLOR4 = e.target.value; localStorage.setItem('color4', COLOR4)});
+    $('#strokeColor').val(localStorage.getItem('strokeColor') || STROKE_COLOR).on('change', function(e) { STROKE_COLOR = e.target.value; localStorage.setItem('strokeColor', STROKE_COLOR)});
     $('#edgeColor').val(localStorage.getItem('edgeColor') || EDGE_COLOR).on('change', function(e) { EDGE_COLOR = e.target.value; localStorage.setItem('edgeColor', EDGE_COLOR)});
 
-    $('#edgeColor').trigger('change');
     $('#color1').trigger('change');
     $('#color2').trigger('change');
     $('#color3').trigger('change');
     $('#color4').trigger('change');
+    $('#strokeColor').trigger('change');
+    $('#edgeColor').trigger('change');
 
     $('#clearLocalStorage').on('click', function() {
       $('#printLocalStorage').click();
@@ -46,6 +58,7 @@ module.exports = class Game {
       localStorage.removeItem('color2');
       localStorage.removeItem('color3');
       localStorage.removeItem('color4');
+      localStorage.removeItem('strokeColor');
       localStorage.removeItem('edgeColor');
     });
 
@@ -54,6 +67,7 @@ module.exports = class Game {
       console.log("let COLOR2 = '" +  localStorage.getItem('color2') + "'");
       console.log("let COLOR3 = '" +  localStorage.getItem('color3') + "'");
       console.log("let COLOR4 = '" +  localStorage.getItem('color4') + "'");
+      console.log("let STROKE_COLOR = '" +  localStorage.getItem('strokeColor') + "'");
       console.log("let EDGE_COLOR = '" +  localStorage.getItem('edgeColor') + "'");
     });
     this.gameLoop();
@@ -81,7 +95,7 @@ module.exports = class Game {
 
     // draw edges
     this.ctx.strokeStyle = EDGE_COLOR;
-    this.ctx.lineWidth = 1;
+    this.ctx.lineWidth = 0.8;
     for (let edge of this.graph.edges) {
       this.ctx.beginPath();
       this.ctx.moveTo(edge[0].x, edge[0].y);
@@ -89,8 +103,23 @@ module.exports = class Game {
       this.ctx.stroke();
     }
 
+    // draw hover glows
+    if (this.hoveredNode) {
+      let gradient = this.ctx.createRadialGradient(this.hoveredNode.x, this.hoveredNode.y, NODE_RAD, this.hoveredNode.x, this.hoveredNode.y, GLOW_RAD);
+      //gradient.addColorStop(0.0, 'rgba(43,139,255,0.5)'); // #2b8bff
+      //gradient.addColorStop(0.8, 'rgba(43,139,255,0.1)'); // #2b8bff
+      //gradient.addColorStop(1.0, 'rgba(43,139,255,0.0)'); // #2b8bff
+      gradient.addColorStop(0.0, 'rgba(255,162,0,0.6)');
+      gradient.addColorStop(0.6, 'rgba(255,162,0,0.2)');
+      gradient.addColorStop(1.0, 'rgba(255,162,0,0.0)');
+      this.ctx.fillStyle = gradient;
+      this.ctx.beginPath();
+      this.ctx.arc (this.hoveredNode.x, this.hoveredNode.y, GLOW_RAD, 0, 2 * Math.PI);
+      this.ctx.fill();
+    }
+
     // draw nodes
-    this.ctx.strokeStyle = 'rgba(0,0,0,0)';
+    this.ctx.strokeStyle = STROKE_COLOR;
     for (let node of this.graph.nodes) {
       if (this.hoveredNode != node) {
         let innerRadius = NODE_RAD * .25;
@@ -112,15 +141,17 @@ module.exports = class Game {
 
     // draw hovered node
     if (this.hoveredNode) {
+      // draw node
       let innerRadius = NODE_RAD * .25;
       let outerRadius = NODE_RAD * 1.01;
       let offset = NODE_RAD * -.4;
       let gradient = this.ctx.createRadialGradient(this.hoveredNode.x + offset, this.hoveredNode.y + offset, innerRadius, this.hoveredNode.x, this.hoveredNode.y, outerRadius);
-      gradient.addColorStop(0.000, this.shadeBlendConvert(.5, COLOR1));
-      gradient.addColorStop(0.188, this.shadeBlendConvert(.2, COLOR2));
+      gradient.addColorStop(0.000, this.shadeBlendConvert(.8, COLOR1));
+      gradient.addColorStop(0.188, this.shadeBlendConvert(.3, COLOR2));
       gradient.addColorStop(0.825, this.shadeBlendConvert(.2, COLOR3));
       gradient.addColorStop(0.855, this.shadeBlendConvert(.2, COLOR4));
       this.ctx.fillStyle = gradient;
+      this.ctx.strokeStyle = this.shadeBlendConvert(0, EDGE_COLOR);
 
       this.ctx.beginPath();
       this.ctx.arc (this.hoveredNode.x, this.hoveredNode.y, NODE_RAD, 0, 2 * Math.PI);
@@ -144,6 +175,25 @@ module.exports = class Game {
       this.ctx.arc (this.draggedNode.x, this.draggedNode.y, NODE_RAD, 0, 2 * Math.PI);
       this.ctx.fill();
       this.ctx.stroke();
+
+      // highlight neighbors of dragged node
+      this.ctx.strokeStyle = HOVER_STROKE_COLOR;
+      for (let node of this.draggedNode.nodes) {
+        let innerRadius = NODE_RAD * .25;
+        let outerRadius = NODE_RAD * 1.01;
+        let offset = NODE_RAD * -.4;
+        let gradient = this.ctx.createRadialGradient(node.x + offset, node.y + offset, innerRadius, node.x, node.y, outerRadius);
+        gradient.addColorStop(0.000, HOVER_COLOR1);
+        gradient.addColorStop(0.188, HOVER_COLOR2);
+        gradient.addColorStop(0.825, HOVER_COLOR3);
+        gradient.addColorStop(0.855, HOVER_COLOR4);
+        this.ctx.fillStyle = gradient;
+
+        this.ctx.beginPath();
+        this.ctx.arc (node.x, node.y, NODE_RAD, 0, 2 * Math.PI);
+        this.ctx.fill();
+        this.ctx.stroke();
+      }
     }
 
     // misc
@@ -156,6 +206,10 @@ module.exports = class Game {
     let newHoveredNode = this.getAnyTouchingNode(x, y);
 
     if (this.draggedNode) {
+      this.$canvas.css("cursor", "-webkit-grabbing");
+      this.$canvas.css("cursor", "-moz-grabbing");
+      this.$canvas.css("cursor", "grabbing");
+
       // drag it!
       this.draggedNode.x = x + this.draggedNodeXOffset;
       this.draggedNode.y = y + this.draggedNodeYOffset;
@@ -169,7 +223,9 @@ module.exports = class Game {
       } else { // if we weren't overlapping and are now, set cursor to pointer
         if (newHoveredNode) {
           // found overlap, turn on pointer
-          this.$canvas.css("cursor", "pointer");
+          this.$canvas.css("cursor", "-webkit-grab");
+          this.$canvas.css("cursor", "-moz-grab");
+          this.$canvas.css("cursor", "grab");
           this.hoveredNode = newHoveredNode;
         }
       }
