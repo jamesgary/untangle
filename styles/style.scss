@@ -1,13 +1,57 @@
-$manaColor1: #B606E0;
-$manaColor2: #B901D0;
+html, body {
+  margin: 0;
+  padding: 0;
+}
 
 body {
-  background: #fafafa;
-  color: #111;
-  font-family: "Lucida Console", Monaco, monospace;
+  background: white;
   text-align: center;
+  font-family: 'Open Sans', sans-serif;
+  //89C0FF
+
+  /* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#f9fcff+65,edf5ff+100 */
+  background: rgb(249,252,255); /* Old browsers */
+  background: -moz-radial-gradient(center, ellipse cover,  rgb(249,252,255) 65%, rgb(237,245,255) 100%); /* FF3.6-15 */
+  background: -webkit-radial-gradient(center, ellipse cover,  rgb(249,252,255) 65%,rgb(237,245,255) 100%); /* Chrome10-25,Safari5.1-6 */
+  background: radial-gradient(ellipse at center,  rgb(249,252,255) 65%,rgb(237,245,255) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f9fcff', endColorstr='#edf5ff',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
 }
 
 canvas {
-  background: white;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+}
+
+#colorpicker-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+#colorpicker {
+  width: 100%;
+  height: 100%;
+  background: #AAE1FF;
+  border: 2px solid #7EACDC;
+  padding: 10px;
+  box-sizing: border-box;
+
+  dl {
+    text-align: left;
+  }
+
+  dt, dd {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+  }
+
+  dd {
+    float: right;
+  }
 }
