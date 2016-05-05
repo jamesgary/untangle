@@ -51,11 +51,12 @@ module.exports = class Game {
     this.canvas.addEventListener('mousemove', this.mousemove.bind(this));
     this.canvas.addEventListener('mousedown', this.mousedown.bind(this));
     this.canvas.addEventListener('mouseup', this.mouseup.bind(this));
-    $('#color1').val(localStorage.getItem('color1') || COLOR1).on('change', function(e) { COLOR1 = e.target.value; localStorage.setItem('color1', COLOR1)});
-    $('#color2').val(localStorage.getItem('color2') || COLOR2).on('change', function(e) { COLOR2 = e.target.value; localStorage.setItem('color2', COLOR2)});
-    $('#color3').val(localStorage.getItem('color3') || COLOR3).on('change', function(e) { COLOR3 = e.target.value; localStorage.setItem('color3', COLOR3)});
-    $('#color4').val(localStorage.getItem('color4') || COLOR4).on('change', function(e) { COLOR4 = e.target.value; localStorage.setItem('color4', COLOR4)});
-    $('#strokeColor').val(localStorage.getItem('strokeColor') || STROKE_COLOR).on('change', function(e) { STROKE_COLOR = e.target.value; localStorage.setItem('strokeColor', STROKE_COLOR)});
+    let self = this;
+    $('#color1').val(localStorage.getItem('color1') || COLOR1).on('change', function(e) { COLOR1 = e.target.value; localStorage.setItem('color1', COLOR1); self.is_dirty = true;});
+    $('#color2').val(localStorage.getItem('color2') || COLOR2).on('change', function(e) { COLOR2 = e.target.value; localStorage.setItem('color2', COLOR2); self.is_dirty = true;});
+    $('#color3').val(localStorage.getItem('color3') || COLOR3).on('change', function(e) { COLOR3 = e.target.value; localStorage.setItem('color3', COLOR3); self.is_dirty = true;});
+    $('#color4').val(localStorage.getItem('color4') || COLOR4).on('change', function(e) { COLOR4 = e.target.value; localStorage.setItem('color4', COLOR4); self.is_dirty = true;});
+    $('#strokeColor').val(localStorage.getItem('strokeColor') || STROKE_COLOR).on('change', function(e) { STROKE_COLOR = e.target.value; localStorage.setItem('strokeColor', STROKE_COLOR); self.is_dirty = true});
     //$('#edgeColor').val(localStorage.getItem('edgeColor') || EDGE_COLOR).on('change', function(e) { EDGE_COLOR = e.target.value; localStorage.setItem('edgeColor', EDGE_COLOR)});
 
     $('#color1').trigger('change');
@@ -143,7 +144,7 @@ module.exports = class Game {
           gradient.addColorStop(0.188, this.shadeBlendConvert(.3, HOVER_COLOR2));
           gradient.addColorStop(0.825, this.shadeBlendConvert(.3, HOVER_COLOR3));
           gradient.addColorStop(0.855, this.shadeBlendConvert(.3, HOVER_COLOR4));
-        } else if (node.isNeighboring) {
+        } else if (!this.selectedNodes && node.isNeighboring) { // only show neighboring if not lasso'd
           this.ctx.strokeStyle = this.shadeBlendConvert(0, HOVER_STROKE_COLOR);
           gradient.addColorStop(0.000, this.shadeBlendConvert(0, HOVER_COLOR1));
           gradient.addColorStop(0.188, this.shadeBlendConvert(0, HOVER_COLOR2));
