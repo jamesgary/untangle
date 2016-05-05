@@ -17,10 +17,20 @@ let HOVER_COLOR3 = '#f39a24'
 let HOVER_COLOR4 = '#dd8c10'
 let HOVER_STROKE_COLOR = '#864d00'
 
+let LASSO_NODE_COLOR1 = '#40d100'
+let LASSO_NODE_COLOR2 = '#12a962'
+let LASSO_NODE_COLOR3 = '#0e5041'
+let LASSO_NODE_COLOR4 = '#2d5c20'
+let LASSO_NODE_EDGE = '#0a2d1d'
+
 let NODE_STROKE_WIDTH = 0.8;
 let EDGE_COLOR = 'rgba(24,24,121,0.5)';
-let EDGE_WIDTH = 3;
+let EDGE_WIDTH = 2.5;
 let TRANSPARENT = 'rgba(255,255,255,0)';
+
+let LASSO_STROKE_COLOR = 'rgba(0,100,0,.9)';
+let LASSO_LINE_DASH = [5, 5];
+let LASSO_STROKE_WIDTH = 1;
 
 let NODE_RAD = 15;
 let GLOW_RAD = NODE_RAD * 1.8;
@@ -121,7 +131,13 @@ module.exports = class Game {
         let offset = NODE_RAD * -.4;
         let gradient = this.ctx.createRadialGradient(node.x + offset, node.y + offset, innerRadius, node.x, node.y, outerRadius);
 
-        if (node == this.draggedNode) {
+        if (node.isBeingSelected) {
+          this.ctx.strokeStyle = this.shadeBlendConvert(0, LASSO_NODE_EDGE);
+          gradient.addColorStop(0.000, this.shadeBlendConvert(0, LASSO_NODE_COLOR1));
+          gradient.addColorStop(0.188, this.shadeBlendConvert(0, LASSO_NODE_COLOR2));
+          gradient.addColorStop(0.825, this.shadeBlendConvert(0, LASSO_NODE_COLOR3));
+          gradient.addColorStop(0.855, this.shadeBlendConvert(0, LASSO_NODE_COLOR4));
+        } else if (node == this.draggedNode) {
           this.ctx.strokeStyle = this.shadeBlendConvert(.1, HOVER_STROKE_COLOR);
           gradient.addColorStop(0.000, this.shadeBlendConvert(.3, HOVER_COLOR1));
           gradient.addColorStop(0.188, this.shadeBlendConvert(.3, HOVER_COLOR2));
@@ -155,6 +171,20 @@ module.exports = class Game {
         this.ctx.stroke();
       }
 
+      if (this.lassoCorner1X) {
+        this.ctx.strokeStyle = LASSO_STROKE_COLOR;
+        this.ctx.lineWidth = LASSO_STROKE_WIDTH;
+        this.ctx.setLineDash(LASSO_LINE_DASH);
+
+        this.ctx.rect(
+          this.lassoCorner1X,
+          this.lassoCorner1Y,
+          this.lassoCorner2X - this.lassoCorner1X,
+          this.lassoCorner2Y - this.lassoCorner1Y
+        );
+        this.ctx.stroke();
+      }
+
       this.is_dirty = false; // all clean!
     }
 
@@ -167,59 +197,75 @@ module.exports = class Game {
     let y = evt.clientY - rect.top;
 
     if (this.draggedNode) {
-      // drag it!
-      this.draggedNode.x = x + this.draggedNodeXOffset;
-      this.draggedNode.y = y + this.draggedNodeYOffset;
+      let xDistToMove = x - this.draggedNode.x + this.draggedNodeXOffset;
+      let yDistToMove = y - this.draggedNode.y + this.draggedNodeYOffset;
+
+      if (this.draggedNode.isBeingSelected) {
+        // drag all its buddies
+        for (let node of this.selectedNodes) {
+          node.x += xDistToMove;
+          node.y += yDistToMove;
+        }
+      } else {
+        // drag it!
+        this.draggedNode.x += xDistToMove;
+        this.draggedNode.y += yDistToMove;
+      }
     }
 
-    let newHoveredNode = this.getTopTouchingNode(x, y);
-    this.is_dirty = true;
+    if (this.lassoCorner1X) {
+      this.lassoCorner2X = x;
+      this.lassoCorner2Y = y;
 
-    if (newHoveredNode) {
-      if (newHoveredNode != this.hoveredNode) {
-        if (!this.hoveredNode) {
-          this.$canvas.css("cursor", "-webkit-grab");
-          this.$canvas.css("cursor", "-moz-grab");
-          this.$canvas.css("cursor", "grab");
-        }
-        this.hoveredNode = newHoveredNode;
+      let width = Math.abs(this.lassoCorner1X - this.lassoCorner2X);
+      let height = Math.abs(this.lassoCorner1Y - this.lassoCorner2Y);
+      let centerLassoX = Math.abs(this.lassoCorner1X + this.lassoCorner2X) / 2;
+      let centerLassoY = Math.abs(this.lassoCorner1Y + this.lassoCorner2Y) / 2;
+
+      for (let node of this.graph.nodes) {
+        let distX = Math.abs(node.x - centerLassoX)
+        let distY = Math.abs(node.y - centerLassoY)
+
+        if (distX > (width  / 2 + NODE_RAD)) { node.isBeingSelected = false; continue; }
+        if (distY > (height / 2 + NODE_RAD)) { node.isBeingSelected = false; continue; }
+
+        if (distX <= (width  / 2)) { node.isBeingSelected = true; continue; }
+        if (distY <= (height / 2)) { node.isBeingSelected = true; continue; }
+
+        var dx = distX - width / 2;
+        var dy = distY - height / 2;
+        node.isBeingSelected = (dx*dx+dy*dy<=(NODE_RAD*NODE_RAD));
       }
     } else {
-      if (newHoveredNode != this.hoveredNode) {
-        this.hoveredNode = null;
-        this.$canvas.css("cursor", "default");
+      let newHoveredNode = this.getTopTouchingNode(x, y);
+
+      if (newHoveredNode) {
+        if (newHoveredNode != this.hoveredNode) {
+          if (!this.hoveredNode) {
+            this.$canvas.css("cursor", "-webkit-grab");
+            this.$canvas.css("cursor", "-moz-grab");
+            this.$canvas.css("cursor", "grab");
+          }
+          this.hoveredNode = newHoveredNode;
+        }
+      } else {
+        if (newHoveredNode != this.hoveredNode) {
+          this.hoveredNode = null;
+          this.$canvas.css("cursor", "default");
+        }
       }
     }
 
-    //if (this.draggedNode) {
-    //  // drag it!
-    //  this.draggedNode.x = x + this.draggedNodeXOffset;
-    //  this.draggedNode.y = y + this.draggedNodeYOffset;
-    //} else {
-    //  // if we were overlapping and now no longer overlap, set cursor to default
-    //  if (this.hoveredNode) {
-    //    if (!newHoveredNode) {
-    //      this.$canvas.css("cursor", "default");
-    //      this.hoveredNode = null;
-    //    }
-    //  } else { // if we weren't overlapping and are now, set cursor to pointer
-    //    if (newHoveredNode) {
-    //      // found overlap, turn on pointer
-    //      this.$canvas.css("cursor", "-webkit-grab");
-    //      this.$canvas.css("cursor", "-moz-grab");
-    //      this.$canvas.css("cursor", "grab");
-    //      this.hoveredNode = newHoveredNode;
-    //    }
-    //  }
-    //}
+    this.is_dirty = true;
   }
 
   mousedown(evt) {
+    let rect = canvas.getBoundingClientRect();
+    let x = evt.clientX - rect.left;
+    let y = evt.clientY - rect.top;
+
     if (this.hoveredNode) {
       this.is_dirty = true;
-      let rect = canvas.getBoundingClientRect();
-      let x = evt.clientX - rect.left;
-      let y = evt.clientY - rect.top;
 
       this.draggedNode = this.hoveredNode;
       this.draggedNodeXOffset = this.draggedNode.x - x;
@@ -233,13 +279,33 @@ module.exports = class Game {
       for (let node of this.draggedNode.nodes) {
         node.isNeighboring = true;
       }
+    } else {
+      this.$canvas.css("cursor", "crosshair");
+      this.lassoCorner1X = x;
+      this.lassoCorner1Y = y;
+      this.lassoCorner2X = x;
+      this.lassoCorner2Y = y;
+      this.mousemove(evt); // trigger a move
     }
   }
 
   mouseup(evt) {
     this.is_dirty = true;
 
-    if (this.draggedNode) {
+    if (this.lassoCorner1X) {
+      this.lassoCorner1X = null;
+      this.lassoCorner1Y = null;
+      this.lassoCorner2X = null;
+      this.lassoCorner2Y = null;
+      this.selectedNodes = [];
+      for (let node of this.graph.nodes) {
+        if (node.isBeingSelected) {
+          this.selectedNodes.push(node);
+        }
+      }
+
+      this.mousemove(evt); // trigger a move
+    } else if (this.draggedNode) {
       for (let node of this.draggedNode.nodes) {
         node.isNeighboring = false;
       }
