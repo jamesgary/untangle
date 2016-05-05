@@ -20,12 +20,13 @@ let HOVER_STROKE_COLOR = '#864d00'
 let EDGE_COLOR = '#181879'
 let TRANSPARENT = 'rgba(255,255,255,0)';
 
-let NODE_RAD = 10;
+let NODE_RAD = 30;
 let GLOW_RAD = NODE_RAD * 1.8;
+let NUM_LINES = 10
 
 module.exports = class Game {
   constructor(canvas) {
-    let edges = GraphGenerators.generateTantalo({numLines: 8});
+    let edges = GraphGenerators.generateTantalo({numLines: NUM_LINES});
     this.graph = new GameGraph(edges, WIDTH, HEIGHT);
     this.canvas = canvas;
     this.$canvas = $(canvas);
@@ -70,6 +71,11 @@ module.exports = class Game {
       console.log("let STROKE_COLOR = '" +  localStorage.getItem('strokeColor') + "'");
       console.log("let EDGE_COLOR = '" +  localStorage.getItem('edgeColor') + "'");
     });
+    for (let node of this.graph.nodes) {
+      node.timeHovered = 0;
+      node.timeUnhovered = 0;
+    }
+    this.is_dirty = true;
     this.gameLoop();
   }
 
@@ -89,111 +95,124 @@ module.exports = class Game {
   }
 
   draw(ticksPassed) {
-    // resize and clear canvas
-    this.canvas.width  = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    if (this.is_dirty) {
+      // resize and clear canvas
+      this.canvas.width  = window.innerWidth;
+      this.canvas.height = window.innerHeight;
 
-    // draw edges
-    this.ctx.strokeStyle = EDGE_COLOR;
-    this.ctx.lineWidth = 0.8;
-    for (let edge of this.graph.edges) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(edge[0].x, edge[0].y);
-      this.ctx.lineTo(edge[1].x, edge[1].y);
-      this.ctx.stroke();
-    }
+      // draw edges
+      this.ctx.strokeStyle = EDGE_COLOR;
+      this.ctx.lineWidth = 0.8;
+      for (let edge of this.graph.edges) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(edge[0].x, edge[0].y);
+        this.ctx.lineTo(edge[1].x, edge[1].y);
+        this.ctx.stroke();
+      }
 
-    // draw hover glows
-    if (this.hoveredNode) {
-      let gradient = this.ctx.createRadialGradient(this.hoveredNode.x, this.hoveredNode.y, NODE_RAD, this.hoveredNode.x, this.hoveredNode.y, GLOW_RAD);
-      //gradient.addColorStop(0.0, 'rgba(43,139,255,0.5)'); // #2b8bff
-      //gradient.addColorStop(0.8, 'rgba(43,139,255,0.1)'); // #2b8bff
-      //gradient.addColorStop(1.0, 'rgba(43,139,255,0.0)'); // #2b8bff
-      gradient.addColorStop(0.0, 'rgba(255,162,0,0.6)');
-      gradient.addColorStop(0.6, 'rgba(255,162,0,0.2)');
-      gradient.addColorStop(1.0, 'rgba(255,162,0,0.0)');
-      this.ctx.fillStyle = gradient;
-      this.ctx.beginPath();
-      this.ctx.arc (this.hoveredNode.x, this.hoveredNode.y, GLOW_RAD, 0, 2 * Math.PI);
-      this.ctx.fill();
-    }
+      // draw hover glows
+      //if (this.hoveredNode) {
+      //  let gradient = this.ctx.createRadialGradient(this.hoveredNode.x, this.hoveredNode.y, NODE_RAD, this.hoveredNode.x, this.hoveredNode.y, GLOW_RAD);
+      //  //gradient.addColorStop(0.0, 'rgba(43,139,255,0.5)'); // #2b8bff
+      //  //gradient.addColorStop(0.8, 'rgba(43,139,255,0.1)'); // #2b8bff
+      //  //gradient.addColorStop(1.0, 'rgba(43,139,255,0.0)'); // #2b8bff
+      //  gradient.addColorStop(0.0, 'rgba(255,162,0,0.6)');
+      //  gradient.addColorStop(0.6, 'rgba(255,162,0,0.2)');
+      //  gradient.addColorStop(1.0, 'rgba(255,162,0,0.0)');
+      //  this.ctx.fillStyle = gradient;
+      //  this.ctx.beginPath();
+      //  this.ctx.arc (this.hoveredNode.x, this.hoveredNode.y, GLOW_RAD, 0, 2 * Math.PI);
+      //  this.ctx.fill();
+      //}
 
-    // draw nodes
-    this.ctx.strokeStyle = STROKE_COLOR;
-    for (let node of this.graph.nodes) {
-      if (this.hoveredNode != node) {
+      // draw all nodes (draw bottom first, then top last!)
+      for (let i = this.graph.nodes.length - 1; i >= 0; i--) {
+        let node = this.graph.nodes[i];
         let innerRadius = NODE_RAD * .25;
         let outerRadius = NODE_RAD * 1.01;
         let offset = NODE_RAD * -.4;
         let gradient = this.ctx.createRadialGradient(node.x + offset, node.y + offset, innerRadius, node.x, node.y, outerRadius);
-        gradient.addColorStop(0.000, COLOR1);
-        gradient.addColorStop(0.188, COLOR2);
-        gradient.addColorStop(0.825, COLOR3);
-        gradient.addColorStop(0.855, COLOR4);
+
+        if (node == this.hoveredNode) {
+          // draw hovered node
+          //this.ctx.strokeStyle = this.shadeBlendConvert(0, EDGE_COLOR);
+          //gradient.addColorStop(0.000, this.shadeBlendConvert(.8, COLOR1));
+          //gradient.addColorStop(0.188, this.shadeBlendConvert(.3, COLOR2));
+          //gradient.addColorStop(0.825, this.shadeBlendConvert(.2, COLOR3));
+          //gradient.addColorStop(0.855, this.shadeBlendConvert(.2, COLOR4));
+
+          this.ctx.strokeStyle = HOVER_STROKE_COLOR;
+          gradient.addColorStop(0.000, HOVER_COLOR1);
+          gradient.addColorStop(0.188, HOVER_COLOR2);
+          gradient.addColorStop(0.825, HOVER_COLOR3);
+          gradient.addColorStop(0.855, HOVER_COLOR4);
+        } else {
+          // draw boring node
+          this.ctx.strokeStyle = STROKE_COLOR;
+          gradient.addColorStop(0.000, COLOR1);
+          gradient.addColorStop(0.188, COLOR2);
+          gradient.addColorStop(0.825, COLOR3);
+          gradient.addColorStop(0.855, COLOR4);
+        }
         this.ctx.fillStyle = gradient;
 
         this.ctx.beginPath();
         this.ctx.arc (node.x, node.y, NODE_RAD, 0, 2 * Math.PI);
         this.ctx.fill();
         this.ctx.stroke();
+
+        //if (node == this.hoveredNode) {
+        //  gradient = this.ctx.createRadialGradient(this.hoveredNode.x, this.hoveredNode.y, NODE_RAD, this.hoveredNode.x, this.hoveredNode.y, GLOW_RAD);
+        //  //gradient.addColorStop(0.0, 'rgba(43,139,255,0.5)'); // #2b8bff
+        //  //gradient.addColorStop(0.8, 'rgba(43,139,255,0.1)'); // #2b8bff
+        //  //gradient.addColorStop(1.0, 'rgba(43,139,255,0.0)'); // #2b8bff
+        //  gradient.addColorStop(0.0, 'rgba(255,162,0,0.6)');
+        //  gradient.addColorStop(0.6, 'rgba(255,162,0,0.2)');
+        //  gradient.addColorStop(1.0, 'rgba(255,162,0,0.0)');
+        //  this.ctx.fillStyle = gradient;
+        //  this.ctx.beginPath();
+        //  this.ctx.arc (this.hoveredNode.x, this.hoveredNode.y, GLOW_RAD, 0, 2 * Math.PI);
+        //  this.ctx.fill();
+        //}
       }
-    }
 
-    // draw hovered node
-    if (this.hoveredNode) {
-      // draw node
-      let innerRadius = NODE_RAD * .25;
-      let outerRadius = NODE_RAD * 1.01;
-      let offset = NODE_RAD * -.4;
-      let gradient = this.ctx.createRadialGradient(this.hoveredNode.x + offset, this.hoveredNode.y + offset, innerRadius, this.hoveredNode.x, this.hoveredNode.y, outerRadius);
-      gradient.addColorStop(0.000, this.shadeBlendConvert(.8, COLOR1));
-      gradient.addColorStop(0.188, this.shadeBlendConvert(.3, COLOR2));
-      gradient.addColorStop(0.825, this.shadeBlendConvert(.2, COLOR3));
-      gradient.addColorStop(0.855, this.shadeBlendConvert(.2, COLOR4));
-      this.ctx.fillStyle = gradient;
-      this.ctx.strokeStyle = this.shadeBlendConvert(0, EDGE_COLOR);
-
-      this.ctx.beginPath();
-      this.ctx.arc (this.hoveredNode.x, this.hoveredNode.y, NODE_RAD, 0, 2 * Math.PI);
-      this.ctx.fill();
-      this.ctx.stroke();
-    }
-
-    // draw dragged node
-    if (this.draggedNode) {
-      let innerRadius = NODE_RAD * .25;
-      let outerRadius = NODE_RAD * 1.01;
-      let offset = NODE_RAD * -.4;
-      let gradient = this.ctx.createRadialGradient(this.hoveredNode.x + offset, this.hoveredNode.y + offset, innerRadius, this.hoveredNode.x, this.hoveredNode.y, outerRadius);
-      gradient.addColorStop(0.000, this.shadeBlendConvert(.7, COLOR1));
-      gradient.addColorStop(0.188, this.shadeBlendConvert(.3, COLOR2));
-      gradient.addColorStop(0.825, this.shadeBlendConvert(.3, COLOR3));
-      gradient.addColorStop(0.855, this.shadeBlendConvert(.3, COLOR4));
-      this.ctx.fillStyle = gradient;
-
-      this.ctx.beginPath();
-      this.ctx.arc (this.draggedNode.x, this.draggedNode.y, NODE_RAD, 0, 2 * Math.PI);
-      this.ctx.fill();
-      this.ctx.stroke();
-
-      // highlight neighbors of dragged node
-      this.ctx.strokeStyle = HOVER_STROKE_COLOR;
-      for (let node of this.draggedNode.nodes) {
+      // draw dragged node
+      if (this.draggedNode) {
         let innerRadius = NODE_RAD * .25;
         let outerRadius = NODE_RAD * 1.01;
         let offset = NODE_RAD * -.4;
-        let gradient = this.ctx.createRadialGradient(node.x + offset, node.y + offset, innerRadius, node.x, node.y, outerRadius);
-        gradient.addColorStop(0.000, HOVER_COLOR1);
-        gradient.addColorStop(0.188, HOVER_COLOR2);
-        gradient.addColorStop(0.825, HOVER_COLOR3);
-        gradient.addColorStop(0.855, HOVER_COLOR4);
+        let gradient = this.ctx.createRadialGradient(this.hoveredNode.x + offset, this.hoveredNode.y + offset, innerRadius, this.hoveredNode.x, this.hoveredNode.y, outerRadius);
+        gradient.addColorStop(0.000, this.shadeBlendConvert(.7, COLOR1));
+        gradient.addColorStop(0.188, this.shadeBlendConvert(.3, COLOR2));
+        gradient.addColorStop(0.825, this.shadeBlendConvert(.3, COLOR3));
+        gradient.addColorStop(0.855, this.shadeBlendConvert(.3, COLOR4));
         this.ctx.fillStyle = gradient;
 
         this.ctx.beginPath();
-        this.ctx.arc (node.x, node.y, NODE_RAD, 0, 2 * Math.PI);
+        this.ctx.arc (this.draggedNode.x, this.draggedNode.y, NODE_RAD, 0, 2 * Math.PI);
         this.ctx.fill();
         this.ctx.stroke();
+
+        // highlight neighbors of dragged node
+        this.ctx.strokeStyle = HOVER_STROKE_COLOR;
+        for (let node of this.draggedNode.nodes) {
+          let innerRadius = NODE_RAD * .25;
+          let outerRadius = NODE_RAD * 1.01;
+          let offset = NODE_RAD * -.4;
+          let gradient = this.ctx.createRadialGradient(node.x + offset, node.y + offset, innerRadius, node.x, node.y, outerRadius);
+          gradient.addColorStop(0.000, HOVER_COLOR1);
+          gradient.addColorStop(0.188, HOVER_COLOR2);
+          gradient.addColorStop(0.825, HOVER_COLOR3);
+          gradient.addColorStop(0.855, HOVER_COLOR4);
+          this.ctx.fillStyle = gradient;
+
+          this.ctx.beginPath();
+          this.ctx.arc (node.x, node.y, NODE_RAD, 0, 2 * Math.PI);
+          this.ctx.fill();
+          this.ctx.stroke();
+        }
       }
+      this.is_dirty = false; // all clean!
     }
 
     // misc
@@ -203,40 +222,61 @@ module.exports = class Game {
     let rect = canvas.getBoundingClientRect();
     let x = evt.clientX - rect.left;
     let y = evt.clientY - rect.top;
-    let newHoveredNode = this.getAnyTouchingNode(x, y);
+    let newHoveredNode = this.getTopTouchingNode(x, y);
+    this.is_dirty = true;
 
-    if (this.draggedNode) {
-      this.$canvas.css("cursor", "-webkit-grabbing");
-      this.$canvas.css("cursor", "-moz-grabbing");
-      this.$canvas.css("cursor", "grabbing");
-
-      // drag it!
-      this.draggedNode.x = x + this.draggedNodeXOffset;
-      this.draggedNode.y = y + this.draggedNodeYOffset;
-    } else {
-      // if we were overlapping and now no longer overlap, set cursor to default
-      if (this.hoveredNode) {
-        if (!newHoveredNode) {
-          this.$canvas.css("cursor", "default");
-          this.hoveredNode = null;
-        }
-      } else { // if we weren't overlapping and are now, set cursor to pointer
-        if (newHoveredNode) {
-          // found overlap, turn on pointer
+    if (newHoveredNode) {
+      if (newHoveredNode != this.hoveredNode) {
+        newHoveredNode.timeHovered = Date.now();
+        if (this.hoveredNode) {
+          this.hoveredNode.timeUnhovered = Date.now();
+        } else {
           this.$canvas.css("cursor", "-webkit-grab");
           this.$canvas.css("cursor", "-moz-grab");
           this.$canvas.css("cursor", "grab");
-          this.hoveredNode = newHoveredNode;
         }
+        this.hoveredNode = newHoveredNode;
+      }
+    } else {
+      if (newHoveredNode != this.hoveredNode) {
+        this.hoveredNode.timeUnhovered = Date.now();
+        this.hoveredNode = null;
+        this.$canvas.css("cursor", "default");
       }
     }
+
+    //if (this.draggedNode) {
+    //  this.$canvas.css("cursor", "-webkit-grabbing");
+    //  this.$canvas.css("cursor", "-moz-grabbing");
+    //  this.$canvas.css("cursor", "grabbing");
+
+    //  // drag it!
+    //  this.draggedNode.x = x + this.draggedNodeXOffset;
+    //  this.draggedNode.y = y + this.draggedNodeYOffset;
+    //} else {
+    //  // if we were overlapping and now no longer overlap, set cursor to default
+    //  if (this.hoveredNode) {
+    //    if (!newHoveredNode) {
+    //      this.$canvas.css("cursor", "default");
+    //      this.hoveredNode = null;
+    //    }
+    //  } else { // if we weren't overlapping and are now, set cursor to pointer
+    //    if (newHoveredNode) {
+    //      // found overlap, turn on pointer
+    //      this.$canvas.css("cursor", "-webkit-grab");
+    //      this.$canvas.css("cursor", "-moz-grab");
+    //      this.$canvas.css("cursor", "grab");
+    //      this.hoveredNode = newHoveredNode;
+    //    }
+    //  }
+    //}
   }
 
   mousedown(evt) {
     let rect = canvas.getBoundingClientRect();
     let x = evt.clientX - rect.left;
     let y = evt.clientY - rect.top;
-    let clickedNode = this.getAnyTouchingNode(x, y);
+    let clickedNode = this.getTopTouchingNode(x, y);
 
     if (clickedNode) {
       this.draggedNode = clickedNode;
@@ -257,7 +297,7 @@ module.exports = class Game {
     }
   }
 
-  getAnyTouchingNode(x, y) {
+  getTopTouchingNode(x, y) {
     for (let node of this.graph.nodes) {
       if (this.distance(x, y, node.x, node.y) <= NODE_RAD) {
         return node;

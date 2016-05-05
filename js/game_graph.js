@@ -49,9 +49,8 @@ module.exports = class GameGraph {
     let i = 0;
     let nodeLength = this.nodes.length;
 
-
     for (let node of this.nodes) {
-      let rotation = i / nodeLength;
+      let rotation = i / nodeLength * -1;
       node.x = centerX + Math.cos(2 * Math.PI * rotation) * radius;
       node.y = centerY + Math.sin(2 * Math.PI * rotation) * radius;
       i++;
