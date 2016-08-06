@@ -1,21 +1,22 @@
 let GameGraph = require("./game_graph.js");
+
 let GraphGenerators = require("./graph_generators.js");
 
 let WIDTH = window.innerWidth;
 let HEIGHT = window.innerHeight;
 
 // defaults
-let COLOR1 = '#40b4ff'
-let COLOR2 = '#128ef3'
-let COLOR3 = '#0e50ca'
-let COLOR4 = '#214ae5'
-let STROKE_COLOR = '#000053';
+let COLOR1 = '#fdd542'
+let COLOR2 = '#fdbd36'
+let COLOR3 = '#f39a24'
+let COLOR4 = '#dd8c10'
+let STROKE_COLOR = '#864d00'
 
-let HOVER_COLOR1 = '#fdd542'
-let HOVER_COLOR2 = '#fdbd36'
-let HOVER_COLOR3 = '#f39a24'
-let HOVER_COLOR4 = '#dd8c10'
-let HOVER_STROKE_COLOR = '#864d00'
+let HOVER_COLOR1 = '#ffd5c2'
+let HOVER_COLOR2 = '#eeccaa'
+let HOVER_COLOR3 = '#eeccaa'
+let HOVER_COLOR4 = '#eeccaa'
+let HOVER_STROKE_COLOR = '#863d30'
 
 let LASSO_NODE_COLOR1 = '#40d100'
 let LASSO_NODE_COLOR2 = '#12a962'
@@ -24,7 +25,7 @@ let LASSO_NODE_COLOR4 = '#2d5c20'
 let LASSO_NODE_EDGE = '#0a2d1d'
 
 let NODE_STROKE_WIDTH = 0.8;
-let EDGE_COLOR = 'rgba(24,24,121,0.5)';
+let EDGE_COLOR = 'rgba(101,44,24,0.5)';
 let EDGE_WIDTH = 2.5;
 let TRANSPARENT = 'rgba(255,255,255,0)';
 
@@ -34,7 +35,7 @@ let LASSO_STROKE_WIDTH = 1;
 
 let NODE_RAD = 15;
 let GLOW_RAD = NODE_RAD * 1.8;
-let NUM_LINES = 10
+let NUM_LINES = 20
 
 module.exports = class Game {
   constructor(canvas) {
@@ -57,7 +58,6 @@ module.exports = class Game {
     $('#color3').val(localStorage.getItem('color3') || COLOR3).on('change', function(e) { COLOR3 = e.target.value; localStorage.setItem('color3', COLOR3); self.is_dirty = true;});
     $('#color4').val(localStorage.getItem('color4') || COLOR4).on('change', function(e) { COLOR4 = e.target.value; localStorage.setItem('color4', COLOR4); self.is_dirty = true;});
     $('#strokeColor').val(localStorage.getItem('strokeColor') || STROKE_COLOR).on('change', function(e) { STROKE_COLOR = e.target.value; localStorage.setItem('strokeColor', STROKE_COLOR); self.is_dirty = true});
-    //$('#edgeColor').val(localStorage.getItem('edgeColor') || EDGE_COLOR).on('change', function(e) { EDGE_COLOR = e.target.value; localStorage.setItem('edgeColor', EDGE_COLOR)});
 
     $('#color1').trigger('change');
     $('#color2').trigger('change');
@@ -82,7 +82,6 @@ module.exports = class Game {
       console.log("let COLOR3 = '" +  localStorage.getItem('color3') + "'");
       console.log("let COLOR4 = '" +  localStorage.getItem('color4') + "'");
       console.log("let STROKE_COLOR = '" +  localStorage.getItem('strokeColor') + "'");
-      console.log("let EDGE_COLOR = '" +  localStorage.getItem('edgeColor') + "'");
     });
     for (let node of this.graph.nodes) {
       node.timeHovered = 0;
@@ -266,8 +265,6 @@ module.exports = class Game {
     let y = evt.clientY - rect.top;
 
     if (this.hoveredNode) {
-      this.is_dirty = true;
-
       this.draggedNode = this.hoveredNode;
       this.draggedNodeXOffset = this.draggedNode.x - x;
       this.draggedNodeYOffset = this.draggedNode.y - y;
@@ -288,11 +285,10 @@ module.exports = class Game {
       this.lassoCorner2Y = y;
       this.mousemove(evt); // trigger a move
     }
+    this.is_dirty = true;
   }
 
   mouseup(evt) {
-    this.is_dirty = true;
-
     if (this.lassoCorner1X) {
       this.lassoCorner1X = null;
       this.lassoCorner1Y = null;
@@ -306,11 +302,14 @@ module.exports = class Game {
       }
 
       this.mousemove(evt); // trigger a move
-    } else if (this.draggedNode) {
-      for (let node of this.draggedNode.nodes) {
-        node.isNeighboring = false;
+    } else {
+      this.selectedNodes = null;
+      if (this.draggedNode) {
+        for (let node of this.draggedNode.nodes) {
+          node.isNeighboring = false;
+        }
+        this.draggedNode = null;
       }
-      this.draggedNode = null;
     }
 
     if (this.hoveredNode) {
@@ -325,6 +324,7 @@ module.exports = class Game {
     if (intersectingEdges.length == 0) {
       console.log("YOU WIN");
     }
+    this.is_dirty = true;
   }
 
   getTopTouchingNode(x, y) {
