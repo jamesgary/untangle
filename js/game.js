@@ -5,41 +5,37 @@ let GraphGenerators = require("./graph_generators.js");
 let WIDTH = window.innerWidth;
 let HEIGHT = window.innerHeight;
 
-// defaults
-let COLOR1 = '#fdd542'
-let COLOR2 = '#fdbd36'
-let COLOR3 = '#f39a24'
-let COLOR4 = '#dd8c10'
-let STROKE_COLOR = '#864d00'
-
-let HOVER_COLOR1 = '#ffd5c2'
-let HOVER_COLOR2 = '#eeccaa'
-let HOVER_COLOR3 = '#eeccaa'
-let HOVER_COLOR4 = '#eeccaa'
-let HOVER_STROKE_COLOR = '#863d30'
-
-let LASSO_NODE_COLOR1 = '#40d100'
-let LASSO_NODE_COLOR2 = '#12a962'
-let LASSO_NODE_COLOR3 = '#0e5041'
-let LASSO_NODE_COLOR4 = '#2d5c20'
-let LASSO_NODE_EDGE = '#0a2d1d'
-
-let NODE_STROKE_WIDTH = 0.8;
-let EDGE_COLOR = 'rgba(101,44,24,0.5)';
-let EDGE_WIDTH = 2.5;
 let TRANSPARENT = 'rgba(255,255,255,0)';
 
-let LASSO_STROKE_COLOR = 'rgba(0,100,0,.9)';
+let LASSO_STROKE_COLOR = 'rgba(0,0,0,.9)';
 let LASSO_LINE_DASH = [5, 5];
 let LASSO_STROKE_WIDTH = 1;
 
-let NODE_RAD = 15;
-let GLOW_RAD = NODE_RAD * 1.8;
-let NUM_LINES = 20
+// customizable options
+let Q = {
+  // nodes
+  nodeCount:        10,
+  nodeRad:          20,
+  outlineThickness: 3,
+
+  nodeFill:            '#fdd542',
+  nodeOutline:         '#995522',
+  nodeHoverFill:       '#245ddf',
+  nodeHoverOutline:    '#062c63',
+  nodeNeighborFill:    '#dd4444',
+  nodeNeighborOutline: '#4e3333',
+  nodeSelectFill:      '#ffffb2',
+  nodeSelectOutline:   '#995522',
+
+  // edges
+  edgeThickness: 4,
+  edgeOpacity: 60,
+  edgeColor: '#0057d4',
+};
 
 module.exports = class Game {
   constructor(canvas) {
-    let edges = GraphGenerators.generateTantalo({numLines: NUM_LINES});
+    let edges = GraphGenerators.generateTantalo({numLines: Q.nodeCount});
     this.graph = new GameGraph(edges, WIDTH, HEIGHT);
     this.canvas = canvas;
     this.$canvas = $(canvas);
@@ -53,36 +49,37 @@ module.exports = class Game {
     this.canvas.addEventListener('mousedown', this.mousedown.bind(this));
     this.canvas.addEventListener('mouseup', this.mouseup.bind(this));
     let self = this;
-    $('#color1').val(localStorage.getItem('color1') || COLOR1).on('change', function(e) { COLOR1 = e.target.value; localStorage.setItem('color1', COLOR1); self.is_dirty = true;});
-    $('#color2').val(localStorage.getItem('color2') || COLOR2).on('change', function(e) { COLOR2 = e.target.value; localStorage.setItem('color2', COLOR2); self.is_dirty = true;});
-    $('#color3').val(localStorage.getItem('color3') || COLOR3).on('change', function(e) { COLOR3 = e.target.value; localStorage.setItem('color3', COLOR3); self.is_dirty = true;});
-    $('#color4').val(localStorage.getItem('color4') || COLOR4).on('change', function(e) { COLOR4 = e.target.value; localStorage.setItem('color4', COLOR4); self.is_dirty = true;});
-    $('#strokeColor').val(localStorage.getItem('strokeColor') || STROKE_COLOR).on('change', function(e) { STROKE_COLOR = e.target.value; localStorage.setItem('strokeColor', STROKE_COLOR); self.is_dirty = true});
 
-    $('#color1').trigger('change');
-    $('#color2').trigger('change');
-    $('#color3').trigger('change');
-    $('#color4').trigger('change');
-    $('#strokeColor').trigger('change');
-    $('#edgeColor').trigger('change');
+    for (let opt in Q) {
+      var startingVal = localStorage.getItem(opt) || Q[opt];
+      $('#' + opt).val(startingVal).on('change keydown input', function(e) {
+        Q[opt] = e.target.value;
+        localStorage.setItem(opt, Q[opt]);
+        self.is_dirty = true;
+
+        if (opt == 'nodeCount') {
+          // restart game if changing node count
+          let edges = GraphGenerators.generateTantalo({numLines: Q.nodeCount});
+          self.graph = new GameGraph(edges, WIDTH, HEIGHT);
+        }
+      }).trigger('change');
+    }
 
     $('#clearLocalStorage').on('click', function() {
       $('#printLocalStorage').click();
-      localStorage.removeItem('color1');
-      localStorage.removeItem('color2');
-      localStorage.removeItem('color3');
-      localStorage.removeItem('color4');
-      localStorage.removeItem('strokeColor');
-      localStorage.removeItem('edgeColor');
+      for (let opt in Q) {
+        localStorage.removeItem(opt);
+      }
     });
 
     $('#printLocalStorage').on('click', function() {
-      console.log("let COLOR1 = '" +  localStorage.getItem('color1') + "'");
-      console.log("let COLOR2 = '" +  localStorage.getItem('color2') + "'");
-      console.log("let COLOR3 = '" +  localStorage.getItem('color3') + "'");
-      console.log("let COLOR4 = '" +  localStorage.getItem('color4') + "'");
-      console.log("let STROKE_COLOR = '" +  localStorage.getItem('strokeColor') + "'");
+      var log = "";
+      for (let opt in Q) {
+        log += opt + ': ' + localStorage.getItem(opt) + ",\n";
+      }
+      console.log(log);
     });
+
     for (let node of this.graph.nodes) {
       node.timeHovered = 0;
       node.timeUnhovered = 0;
@@ -113,60 +110,45 @@ module.exports = class Game {
       this.canvas.height = window.innerHeight;
 
       // draw edges
-      this.ctx.strokeStyle = EDGE_COLOR;
-      this.ctx.lineWidth = EDGE_WIDTH;
+      this.ctx.strokeStyle = Q.edgeColor;
+      this.ctx.lineWidth = Q.edgeThickness;
+      this.ctx.globalAlpha = Q.edgeOpacity / 100.0;
       for (let edge of this.graph.edges) {
         this.ctx.beginPath();
         this.ctx.moveTo(edge[0].x, edge[0].y);
         this.ctx.lineTo(edge[1].x, edge[1].y);
         this.ctx.stroke();
       }
+      this.ctx.globalAlpha = 1; // reset opacity
 
       // draw all nodes (draw bottom first, then top last!)
-      this.ctx.lineWidth = NODE_STROKE_WIDTH;
+      this.ctx.lineWidth = Q.outlineThickness;
       for (let i = this.graph.nodes.length - 1; i >= 0; i--) {
         let node = this.graph.nodes[i];
-        let innerRadius = NODE_RAD * .25;
-        let outerRadius = NODE_RAD * 1.01;
-        let offset = NODE_RAD * -.4;
-        let gradient = this.ctx.createRadialGradient(node.x + offset, node.y + offset, innerRadius, node.x, node.y, outerRadius);
+        let innerRad = Q.nodeRad * .25;
+        let outerRad = Q.nodeRad * 1.01;
+        let offset = Q.nodeRad * -.4;
+        let gradient = this.ctx.createRadialGradient(node.x + offset, node.y + offset, innerRad, node.x, node.y, outerRad);
 
         if (node.isBeingSelected) {
-          this.ctx.strokeStyle = this.shadeBlendConvert(0, LASSO_NODE_EDGE);
-          gradient.addColorStop(0.000, this.shadeBlendConvert(0, LASSO_NODE_COLOR1));
-          gradient.addColorStop(0.188, this.shadeBlendConvert(0, LASSO_NODE_COLOR2));
-          gradient.addColorStop(0.825, this.shadeBlendConvert(0, LASSO_NODE_COLOR3));
-          gradient.addColorStop(0.855, this.shadeBlendConvert(0, LASSO_NODE_COLOR4));
-        } else if (node == this.draggedNode) {
-          this.ctx.strokeStyle = this.shadeBlendConvert(.1, HOVER_STROKE_COLOR);
-          gradient.addColorStop(0.000, this.shadeBlendConvert(.3, HOVER_COLOR1));
-          gradient.addColorStop(0.188, this.shadeBlendConvert(.3, HOVER_COLOR2));
-          gradient.addColorStop(0.825, this.shadeBlendConvert(.3, HOVER_COLOR3));
-          gradient.addColorStop(0.855, this.shadeBlendConvert(.3, HOVER_COLOR4));
+          this.ctx.fillStyle = Q.nodeSelectFill;
+          this.ctx.strokeStyle = Q.nodeSelectOutline;
+        } else if (node == this.draggedNode) { // draw same as hovered
+          this.ctx.fillStyle = Q.nodeHoverFill;
+          this.ctx.strokeStyle = Q.nodeHoverOutline;
         } else if (!this.selectedNodes && node.isNeighboring) { // only show neighboring if not lasso'd
-          this.ctx.strokeStyle = this.shadeBlendConvert(0, HOVER_STROKE_COLOR);
-          gradient.addColorStop(0.000, this.shadeBlendConvert(0, HOVER_COLOR1));
-          gradient.addColorStop(0.188, this.shadeBlendConvert(0, HOVER_COLOR2));
-          gradient.addColorStop(0.825, this.shadeBlendConvert(0, HOVER_COLOR3));
-          gradient.addColorStop(0.855, this.shadeBlendConvert(0, HOVER_COLOR4));
+          this.ctx.fillStyle = Q.nodeNeighborFill;
+          this.ctx.strokeStyle = Q.nodeNeighborOutline;
         } else if (node == this.hoveredNode) {
-          this.ctx.strokeStyle = HOVER_STROKE_COLOR;
-          gradient.addColorStop(0.000, HOVER_COLOR1);
-          gradient.addColorStop(0.188, HOVER_COLOR2);
-          gradient.addColorStop(0.825, HOVER_COLOR3);
-          gradient.addColorStop(0.855, HOVER_COLOR4);
+          this.ctx.fillStyle = Q.nodeHoverFill;
+          this.ctx.strokeStyle = Q.nodeHoverOutline;
         } else {
           // draw boring node
-          this.ctx.strokeStyle = STROKE_COLOR;
-          gradient.addColorStop(0.000, COLOR1);
-          gradient.addColorStop(0.188, COLOR2);
-          gradient.addColorStop(0.825, COLOR3);
-          gradient.addColorStop(0.855, COLOR4);
+          this.ctx.fillStyle = Q.nodeFill;
+          this.ctx.strokeStyle = Q.nodeOutline;
         }
-        this.ctx.fillStyle = gradient;
-
         this.ctx.beginPath();
-        this.ctx.arc (node.x, node.y, NODE_RAD, 0, 2 * Math.PI);
+        this.ctx.arc (node.x, node.y, Q.nodeRad, 0, 2 * Math.PI);
         this.ctx.fill();
         this.ctx.stroke();
       }
@@ -226,15 +208,14 @@ module.exports = class Game {
         let distX = Math.abs(node.x - centerLassoX)
         let distY = Math.abs(node.y - centerLassoY)
 
-        if (distX > (width  / 2 + NODE_RAD)) { node.isBeingSelected = false; continue; }
-        if (distY > (height / 2 + NODE_RAD)) { node.isBeingSelected = false; continue; }
+        if (distX > (width  / 2 + Q.nodeRad)) { node.isBeingSelected = false; continue; }
+        if (distY > (height / 2 + Q.nodeRad)) { node.isBeingSelected = false; continue; }
 
-        if (distX <= (width  / 2)) { node.isBeingSelected = true; continue; }
-        if (distY <= (height / 2)) { node.isBeingSelected = true; continue; }
+        if (distX <= (width  / 2) && distY <= (height / 2)) { node.isBeingSelected = true; continue; }
 
         var dx = distX - width / 2;
         var dy = distY - height / 2;
-        node.isBeingSelected = (dx*dx+dy*dy<=(NODE_RAD*NODE_RAD));
+        node.isBeingSelected = (dx*dx+dy*dy<=(Q.nodeRad*Q.nodeRad));
       }
     } else {
       let newHoveredNode = this.getTopTouchingNode(x, y);
@@ -289,7 +270,7 @@ module.exports = class Game {
   }
 
   mouseup(evt) {
-    if (this.lassoCorner1X) {
+    if (this.lassoCorner1X) { // just finished initial selection
       this.lassoCorner1X = null;
       this.lassoCorner1Y = null;
       this.lassoCorner2X = null;
@@ -303,7 +284,13 @@ module.exports = class Game {
 
       this.mousemove(evt); // trigger a move
     } else {
-      this.selectedNodes = null;
+      // clear the selection
+      if (this.selectedNodes.length > 0) {
+        for (let node of this.selectedNodes) {
+          node.isBeingSelected = false;
+        }
+        this.selectedNodes = [];
+      }
       if (this.draggedNode) {
         for (let node of this.draggedNode.nodes) {
           node.isNeighboring = false;
@@ -329,7 +316,7 @@ module.exports = class Game {
 
   getTopTouchingNode(x, y) {
     for (let node of this.graph.nodes) {
-      if (this.distance(x, y, node.x, node.y) <= NODE_RAD) {
+      if (this.distance(x, y, node.x, node.y) <= Q.nodeRad) {
         return node;
       }
     }

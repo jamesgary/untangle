@@ -1,3 +1,14 @@
+@import "mixins";
+
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -9,13 +20,7 @@ body {
   text-align: center;
   font-family: 'Open Sans', sans-serif;
   //89C0FF
-
-  /* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#f9fcff+67,f9fcff+79,c1ddff+100 */
-  background: #f9fcff; /* Old browsers */
-  background: -moz-radial-gradient(center, ellipse cover,  #f9fcff 67%, #f9fcff 79%, #c1ddff 100%); /* FF3.6-15 */
-  background: -webkit-radial-gradient(center, ellipse cover,  #f9fcff 67%,#f9fcff 79%,#c1ddff 100%); /* Chrome10-25,Safari5.1-6 */
-  background: radial-gradient(ellipse at center,  #f9fcff 67%,#f9fcff 79%,#c1ddff 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f9fcff', endColorstr='#c1ddff',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+  //background: radial-gradient(ellipse at center, #f9fcff 67%, #f9fcff 79%, #c1ddff 100%);
 }
 
 canvas {
@@ -24,23 +29,30 @@ canvas {
   height: 100%;
 }
 
-#colorpicker-container {
+#options-container {
   position: absolute;
   top: 0;
   right: 0;
-  width: 200px;
+  width: 300px;
   height: 100%;
   padding: 10px;
   box-sizing: border-box;
 }
 
-#colorpicker {
+.options {
   width: 100%;
   height: 100%;
   background: #AAE1FF;
   border: 2px solid #7EACDC;
   padding: 10px;
   box-sizing: border-box;
+  overflow-y: scroll;
+
+  h1 {
+    font-size: 28px;
+    text-align: left;
+    font-family: 'Roboto', sans-serif;
+  }
 
   dl {
     text-align: left;
@@ -50,9 +62,14 @@ canvas {
     display: inline-block;
     margin: 0;
     padding: 0;
+    font-size: 16px;
   }
 
   dd {
     float: right;
+  }
+
+  input[type="number"] {
+    width: 35px;
   }
 }
