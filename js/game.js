@@ -15,6 +15,7 @@ let LASSO_STROKE_WIDTH = 1;
 let Q = {
   // nodes
   nodeCount:        10,
+  nodeSpeed:        1,
   nodeRad:          20,
   outlineThickness: 3,
 
@@ -109,11 +110,16 @@ module.exports = class Game {
   }
 
   process(ticksPassed) {
+    for (let node of this.graph.nodes) {
+      node.x += Q.nodeSpeed * (Math.random() - .5);
+      node.y += Q.nodeSpeed * (Math.random() - .5);
+    }
+
     // no op
   }
 
   draw(ticksPassed) {
-    if (this.is_dirty) {
+    if (this.is_dirty || Q.nodeSpeed > 0) {
       $("#state").text(currentState);
 
       // resize and clear canvas
