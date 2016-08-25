@@ -289,6 +289,8 @@ module.exports = class Game {
             node.isBeingSelected = false;
           }
           this.selectedNodes = [];
+          this.mousemove(evt); // trigger a move
+          this.mousedown(evt); // re-trigger a click
         }
         break;
     }
