@@ -26,7 +26,7 @@ let Q = {
   nodeHoverFill:       '#245ddf',
   nodeHoverOutline:    '#062c63',
   nodeNeighborFill:    '#dd4444',
-  nodeNeighborOutline: '#4e3333',
+  nodeNeighborOutline: '#9d3333',
   nodeSelectFill:      '#ffffb2',
   nodeSelectOutline:   '#995522',
 
@@ -121,6 +121,7 @@ module.exports = class Game {
   }
 
   draw(ticksPassed) {
+    let now = Date.now();
     if (this.is_dirty || Q.nodeSpeed > 0) {
       $("#state").text(currentState);
 
@@ -144,10 +145,25 @@ module.exports = class Game {
       this.ctx.lineWidth = Q.outlineThickness;
       for (let i = this.graph.nodes.length - 1; i >= 0; i--) {
         let node = this.graph.nodes[i];
-        let innerRad = Q.nodeRad * .25;
-        let outerRad = Q.nodeRad * 1.01;
-        let offset = Q.nodeRad * -.4;
-        let gradient = this.ctx.createRadialGradient(node.x + offset, node.y + offset, innerRad, node.x, node.y, outerRad);
+
+        // draw glows (WIP)
+        let GLOW_LIFESPAN = 2000;
+        let GLOW_RAD = Q.nodeRad * 3;
+        let glowCoef;
+        if (node.isNeighboring || (node.unneighborizedAt > (now - GLOW_LIFESPAN))) {  // it's still fresh!
+          this.ctx.globalCompositeOperation = "soft-light";
+          glowCoef = node.isNeighboring ? 1 : 1 - ((now - node.unneighborizedAt) / GLOW_LIFESPAN);
+
+          let glowRad = GLOW_RAD * glowCoef;
+          let gradient = this.ctx.createRadialGradient(node.x, node.y, Q.nodeRad, node.x, node.y, glowRad);
+          gradient.addColorStop(0, Q.nodeNeighborFill);
+          gradient.addColorStop(1, TRANSPARENT);
+          this.ctx.fillStyle = gradient;
+          this.ctx.beginPath();
+          this.ctx.arc (node.x, node.y, glowRad, 0, 2 * Math.PI);
+          this.ctx.fill();
+          this.ctx.globalCompositeOperation = "source-over";
+        }
 
         if (node.isBeingSelected) {
           this.ctx.fillStyle = Q.nodeSelectFill;
@@ -162,9 +178,14 @@ module.exports = class Game {
           this.ctx.fillStyle = Q.nodeHoverFill;
           this.ctx.strokeStyle = Q.nodeHoverOutline;
         } else {
-          // draw boring node
-          this.ctx.fillStyle = Q.nodeFill;
-          this.ctx.strokeStyle = Q.nodeOutline;
+          if (glowCoef) {
+            this.ctx.fillStyle   = Maths.shadeBlendConvert(glowCoef, Q.nodeFill, Q.nodeNeighborFill);
+            this.ctx.strokeStyle = Maths.shadeBlendConvert(glowCoef, Q.nodeOutline, Q.nodeNeighborOutline);
+          } else {
+            // draw boring node
+            this.ctx.fillStyle = Q.nodeFill;
+            this.ctx.strokeStyle = Q.nodeOutline;
+          }
         }
         this.ctx.beginPath();
         this.ctx.arc (node.x, node.y, Q.nodeRad, 0, 2 * Math.PI);
@@ -280,10 +301,7 @@ module.exports = class Game {
         this.draggedNodeXOffset = this.draggedNode.x - x;
         this.draggedNodeYOffset = this.draggedNode.y - y;
 
-        // eh, gotta modify the model
-        for (let node of this.draggedNode.nodes) {
-          node.isNeighboring = true;
-        }
+        this.neighborize(this.draggedNode);
         break;
       case SELECT_CLOSED_STATE:
         if (this.hoveredNode && this.hoveredNode.isBeingSelected) {
@@ -311,9 +329,7 @@ module.exports = class Game {
     switch (currentState) {
       case DRAG_STATE:
         currentState = DEFAULT_STATE;
-        for (let node of this.draggedNode.nodes) {
-          node.isNeighboring = false;
-        }
+        this.unneighborize(this.draggedNode);
         this.hoveredNode = null;
         this.draggedNode = null;
         break;
@@ -360,4 +376,19 @@ module.exports = class Game {
     return null;
   }
 
+  neighborize(draggedNode) {
+    let now = Date.now();
+    for (let node of draggedNode.nodes) {
+      node.isNeighboring = true;
+      node.neighborizedAt = now;
+    }
+  }
+
+  unneighborize(draggedNode) {
+    let now = Date.now();
+    for (let node of draggedNode.nodes) {
+      node.isNeighboring = false;
+      node.unneighborizedAt = now;
+    }
+  }
 }
